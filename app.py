@@ -28,7 +28,8 @@ def handle_payload():
         abort(403)
 
     repo_url = content['repository']['clone_url']
-    task = clone_repo.apply_async(args=[repo_url])
+    repo_name = content['repository']['name']
+    task = clone_repo.apply_async(args=[repo_url,repo_name])
     return "Authenticated request :D"
 
 
@@ -40,10 +41,11 @@ def test_celery():
     return "Done"
 
 @celery.task
-def clone_repo(repo_url):
-    print "Cloning repo " + repo_url
-    os.system("git clone {}".format(repo["git_url"]))
-    return 15
+def process_build(repo_url):
+    utils.clone_repo(repo_url)
+    check_activity(repo_name)
+
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

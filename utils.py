@@ -1,5 +1,7 @@
 import hmac
+import os
 from hashlib import sha1
+
 
 # Thanks to https://github.com/carlos-jenkins/python-github-webhooks/blob/master/webhooks.py
 # https://developer.github.com/webhooks/securing/
@@ -11,3 +13,16 @@ def verify_signature(header_signature,raw_data,secret):
     mac = hmac.new(secret,raw_data,sha1)
     # Use compare_digest to avoid timing attacks
     return hmac.compare_digest(str(mac.hexdigest()), str(signature))
+
+def clone_repo(clone_url):
+    print "Cloning repo " + repo_url
+    os.system("git -C repos/ clone {} ".format(repo_url))
+
+
+def check_activity(repo_name):
+    target_folder = os.path.join("repos/",repo_name)
+    if os.path.exists(target_folder):
+        activity_file = os.path.join(target_folder,"activity/activity.info")
+    else
+       return None
+       
