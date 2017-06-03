@@ -32,6 +32,16 @@ sudo make install
 
 Make sure redis is running by logging in `redis-cli`
 
+
+### Run Celery Workers
+
+`celery worker -A app.celery --loglevel=info` this will start celery workers
 ### Run the Flask Server
 
 `python app.py` will start Flask server listening on all interfaces `0.0.0.0` and port `5000`
+
+## Building
+Temporarily all apps are cloned to a folder named repos.
+So create a folder named `repos`.
+
+ `mkdir repos`.
