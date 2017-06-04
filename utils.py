@@ -1,5 +1,7 @@
+
 import hmac
 import os
+import ConfigParser
 from hashlib import sha1
 
 
@@ -15,14 +17,32 @@ def verify_signature(header_signature,raw_data,secret):
     return hmac.compare_digest(str(mac.hexdigest()), str(signature))
 
 def clone_repo(clone_url):
-    print "Cloning repo " + repo_url
-    os.system("git -C repos/ clone {} ".format(repo_url))
+    print "Cloning repo " + clone_url
+    os.system("git -C repos/ clone {} ".format(clone_url))
 
+#TODO : Refactor lose functions to a wrapper class
 
 def check_activity(repo_name):
     target_folder = os.path.join("repos/",repo_name)
     if os.path.exists(target_folder):
         activity_file = os.path.join(target_folder,"activity/activity.info")
-    else
-       return None
-       
+    else:
+       return True
+
+
+def read_activity(activity_file):
+    parser = ConfigParser.ConfigParser()
+    parser.read(activity_file)
+    return parser
+
+def get_activity_attribute(parser,attribute):
+    return parser.get('Activity',attribute)
+
+def convert_to_json_string(parser):
+    # Get all attrbutes of acitvity
+    attributes = parser.items('Activity')
+    # Convert attributes to a JSON string
+    return json.dumps(dict(attributes))
+
+def convert_to_json_object(parser):
+    return json.load(convert_to_json_string(parser))

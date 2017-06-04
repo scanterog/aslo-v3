@@ -36,14 +36,15 @@ def handle_payload():
 @app.route('/test_celery')
 def test_celery():
     repo_url = request.args.get('repo_url')
-    print "Repo name is" + repo_url
-    task = clone_repo.apply_async(args=[repo_url])
+    print "Repo name is " + repo_url
+    task = process_build.apply_async(args=[repo_url,"activity-turtleart-gtk2"])
     return "Done"
 
 @celery.task
-def process_build(repo_url):
+def process_build(repo_url,repo_name):
     utils.clone_repo(repo_url)
-    check_activity(repo_name)
+    return 1
+    #check_activity(repo_name)
 
 
 
