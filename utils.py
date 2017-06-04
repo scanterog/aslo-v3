@@ -2,6 +2,7 @@
 import hmac
 import os
 import ConfigParser
+import json
 from hashlib import sha1
 
 
@@ -26,8 +27,9 @@ def check_activity(repo_name):
     target_folder = os.path.join("repos/",repo_name)
     if os.path.exists(target_folder):
         activity_file = os.path.join(target_folder,"activity/activity.info")
+        return activity_file
     else:
-       return True
+       return None
 
 
 def read_activity(activity_file):
@@ -45,4 +47,4 @@ def convert_to_json_string(parser):
     return json.dumps(dict(attributes))
 
 def convert_to_json_object(parser):
-    return json.load(convert_to_json_string(parser))
+    return json.loads(convert_to_json_string(parser))

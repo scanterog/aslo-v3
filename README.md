@@ -32,6 +32,8 @@ sudo make install
 
 Make sure redis is running by logging in `redis-cli`
 
+### Install MongoDB
+Make sure MongoDB is running by typing `mongo`
 
 ### Run Celery Workers
 
