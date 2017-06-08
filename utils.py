@@ -48,3 +48,6 @@ def convert_to_json_string(parser):
 
 def convert_to_json_object(parser):
     return json.loads(convert_to_json_string(parser))
+
+def build_activity(repo_location):
+    os.system("./build_activity.sh {}".format(repo_location))

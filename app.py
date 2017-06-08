@@ -57,6 +57,7 @@ def process_build(repo_url,repo_name):
     if activity_file not None:
         parsed_json = utils.convert_to_json_object(utils.read_activity(activity_file))
         mongo.db.acitivites.insert(parsed_json)
+        utils.build_activity(repo_name)
     return 1
     #check_activity(repo_name)
 

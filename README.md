@@ -47,3 +47,25 @@ Temporarily all apps are cloned to a folder named repos.
 So create a folder named `repos`.
 
  `mkdir repos`.
+
+#### Installing Build Dependencies
+
+Install `sugar-toolkit`
+
+Clone
+```bash
+git clone --depth=1 https://github.com/sugarlabs/sugar-toolkit-gtk3
+
+```
+
+Install it at appropriate location
+
+``` bash
+mv sugar-toolkit-gtk3/src/sugar3 ~/envs/flask-dev/lib/python2.7/site-packages/sugar3;
+```
+
+Create soft link for old Gtk 2 apps
+
+```bash
+ln -s  ~/envs/flask-dev/lib/python2.7/site-packages/sugar3  ~/envs/flask-dev/lib/python2.7/site-packages/sugar
+```
