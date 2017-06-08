@@ -1,0 +1,3 @@
+volumes:
+  -/tmp/activities:/activities
+  -/bundles:bundles
