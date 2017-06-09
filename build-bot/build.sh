@@ -13,8 +13,8 @@ python setup.py dist_xo
 #mkdir -p bundles
 #mv dist/*.xo "../../bundles/"
 echo "Moving Bundle"
-mv "dist/*.xo" "/bundles/"
+mv dist/*.xo /bundles/
 
 echo "Cleaning up"
 
-rm -rf "activities/$target_repo" 
+rm -rf "activities/$target_repo"
