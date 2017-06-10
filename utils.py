@@ -1,11 +1,14 @@
-
 import hmac
 import os
 import configparser
 import json
+import subprocess
 from hashlib import sha1
 
 
+## Useful constants
+
+DOCKER_IMAGE_TAG = "build_bot"
 # Thanks to https://github.com/carlos-jenkins/python-github-webhooks/blob/master/webhooks.py
 # https://developer.github.com/webhooks/securing/
 def verify_signature(header_signature, raw_data, secret):
@@ -35,7 +38,7 @@ def check_activity(repo_name):
 
 
 def read_activity(activity_file):
-    parser = configParser.ConfigParser()
+    parser = configparser.ConfigParser()
     parser.read(activity_file)
     return parser
 
@@ -54,6 +57,20 @@ def convert_to_json_string(parser):
 def convert_to_json_object(parser):
     return json.loads(convert_to_json_string(parser))
 
+def get_activity_manifest(parser):
+    attributes = dict(parser.items('Activity'))
+    attributes['bundle_name'] = get_bundle_name(parser)
+    return json.loads(json.dumps(attributes))
+
 
 def build_activity(repo_location):
     os.system("./build_activity.sh {}".format(repo_location))
+
+def invoke_build(repo_location):
+     invoke_command = "docker run -v /tmp/test:/activities -v $PWD/bundles:/bundles -it {} {}".format(DOCKER_IMAGE_TAG,repo_location)
+     result = subprocess.Popen(invoke_command)
+
+def get_bundle_name(parser):
+    activity_name = get_activity_attribute(parser,'name')
+    activity_version  = get_activity_attribute(parser,'activity_version')
+    return activity_name + "-" + activity_version + ".xo"   

@@ -35,6 +35,15 @@ Make sure redis is running by logging in `redis-cli`
 ### Install MongoDB
 Make sure MongoDB is running by typing `mongo`
 
+### Install Docker
+Make sure docker is installed and running
+
+##### Build the docker image
+
+```bash 
+cd build-bot
+docker build . -t build-bot
+```
 ### Run Celery Workers
 
 `celery worker -A app.celery --loglevel=info` this will start celery workers

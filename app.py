@@ -24,7 +24,6 @@ GITHUB_HOOK_SECRET = os.environ.get('GITHUB_HOOK_SECRET')
 
 @app.route('/')
 def main():
-    embed()
     return "Welcome"
 
 
@@ -39,7 +38,7 @@ def handle_payload():
 
     repo_url = content['repository']['clone_url']
     repo_name = content['repository']['name']
-    task = clone_repo.apply_async(args=[repo_url, repo_name])
+    task = build_pipeline.apply_async(args=[repo_url, repo_name])
     return "Authenticated request :D"
 
 
@@ -48,16 +47,25 @@ def test_celery():
     repo_url = request.args.get('repo_url')
     repo_name = request.args.get('repo_name')
     print("Repo name is " + repo_url)
-    task = process_build.apply_async(args=[repo_url, repo_name])
+    task = build_pipeline.apply_async(args=[repo_url, repo_name])
     return "Done"
 
 
 @celery.task
-def process_build(repo_url, repo_name):
+def build_pipeline(repo_url, repo_name):
     utils.clone_repo(repo_url)
-    acitvity_file = utils.check_activity(repo_name)
-    return 1
-    # check_activity(repo_name)
+    activity_file = utils.check_activity(repo_name)
+    if activity_file is not None:
+        #sugar = mongo.db.sugar
+        parser = utils.read_activity(activity_file)
+        #sugar.insert_one(json_object)
+        json_object = utils.get_activity_manifest(parser)
+        print(json_object)
+        return "Success"
+    return "Failure"
+
+
+        
 
 
 if __name__ == "__main__":
