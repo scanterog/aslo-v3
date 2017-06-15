@@ -38,6 +38,23 @@ Make sure MongoDB is running by typing `mongo`
 ### Install Docker
 Make sure docker is installed and running
 
+
+### Create appropriate directory for downloading and storing binaries
+
+Either follow these instructions or run `create_directories.sh` 
+`mkdir -p /tmp/activities` - For downloading repos
+
+
+`This requires su(do) privileges`
+
+
+```bash
+sudo mkdir -p /opt/acitvities # For storing finished bundles
+sudo chmod +w -R /opt/bundles/
+```
+
+
+
 ##### Build the docker image
 
 ```bash 

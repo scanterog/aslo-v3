@@ -4,11 +4,13 @@ import configparser
 import json
 import subprocess
 from hashlib import sha1
-
+import shutil
 
 ## Useful constants
-
+DOWNLOAD_LOCATION = "/tmp/activities/"
 DOCKER_IMAGE_TAG = "build_bot"
+BUNDLE_LOCATION = "/opt/bundles/"
+
 # Thanks to https://github.com/carlos-jenkins/python-github-webhooks/blob/master/webhooks.py
 # https://developer.github.com/webhooks/securing/
 def verify_signature(header_signature, raw_data, secret):
@@ -21,6 +23,13 @@ def verify_signature(header_signature, raw_data, secret):
     return hmac.compare_digest(str(mac.hexdigest()), str(signature))
 
 
+def get_target_location(repo_name):
+    return os.path.join(DOWNLOAD_LOCATION,repo_name)
+
+def clean_repo(repo_name):
+    print("Cleaning up " + repo_name )
+    shutil.rmtree(get_target_location(repo_name),ignore_errors=True)
+
 def clone_repo(clone_url):
     print("Cloning repo " + clone_url)
     os.system("git -C repos/ clone {} ".format(clone_url))
@@ -29,7 +38,7 @@ def clone_repo(clone_url):
 
 
 def check_activity(repo_name):
-    target_folder = os.path.join("repos/", repo_name)
+    target_folder = get_target_location(repo_name)
     if os.path.exists(target_folder):
         activity_file = os.path.join(target_folder, "activity/activity.info")
         return activity_file
