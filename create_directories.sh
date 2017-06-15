@@ -3,7 +3,7 @@
 echo "Creating directories ....."
 
 echo "Creating directory for storing downloaded repositories"
-mkdir -p /tmp/acitvities
+mkdir -p /tmp/activities
 
 echo "Creating directories to store downloded bundled activities"
 
