@@ -15,7 +15,9 @@ RUN git clone https://github.com/sugarlabs/sugar-toolkit-gtk3 --depth=1; \
 RUN rm -rf /usr/local/lib/python2.7/site-packages/sugar; \
     ln -s /usr/local/lib/python2.7/site-packages/sugar3 /usr/local/lib/python2.7/site-packages/sugar
 
+#RUN useradd --create-home -s /bin/bash simpleuser
 
+#USER simpleuser
 # Copy build script to container
 COPY build.sh $PWD
 
