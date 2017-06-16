@@ -2,6 +2,7 @@ from flask import Flask, request, abort
 from celery import Celery
 import os
 from flask_pymongo import PyMongo
+from pymongo import MongoClient
 import utils
 
 app = Flask(__name__)
@@ -16,8 +17,8 @@ celery.conf.update(app.config)
 
 # Create Mongo instance
 # TODO : Secure Mongo to avoid Mongo Ransomware :sweat_smile:
-mongo = PyMongo(app)
-
+#mongo = PyMongo(app)
+client = MongoClient(app.config['MONGO_URI'],connect=False)
 app.debug = True
 GITHUB_HOOK_SECRET = os.environ.get('GITHUB_HOOK_SECRET')
 
@@ -59,14 +60,28 @@ def build_pipeline(repo_url, repo_name):
         #sugar = mongo.db.sugar
         parser = utils.read_activity(activity_file)
         #sugar.insert_one(json_object)
+        utils.invoke_build(repo_name)
         json_object = utils.get_activity_manifest(parser)
         print(json_object)
-        return "Success"
+        utils.clean_repo(repo_name)
+        if utils.verify_bundle(json_object['bundle_name']):
+           #json_object['xo_build'] = "success"
+           update_activity_record(json_object)
+           return "Success"
+        return "Failure"
+    utils.clean_repo(repo_name)
     return "Failure"
 
 
+def update_activity_record(json_object):
+    document = client['sugar']['activities']
+    record = document.find_one({'bundle_id': json_object['bundle_id']})
+    if record is None:
+        document.insert_one(json_object)
+    else:
+        record.update(json_object)
         
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+   app.run(host='0.0.0.0')

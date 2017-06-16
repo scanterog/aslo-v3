@@ -32,7 +32,7 @@ def clean_repo(repo_name):
 
 def clone_repo(clone_url):
     print("Cloning repo " + clone_url)
-    os.system("git -C repos/ clone {} ".format(clone_url))
+    os.system("git -C {} clone {} ".format(DOWNLOAD_LOCATION,clone_url))
 
 # TODO : Refactor lose functions to a wrapper class
 
@@ -75,11 +75,19 @@ def get_activity_manifest(parser):
 def build_activity(repo_location):
     os.system("./build_activity.sh {}".format(repo_location))
 
-def invoke_build(repo_location):
-     invoke_command = "docker run -v /tmp/test:/activities -v $PWD/bundles:/bundles -it {} {}".format(DOCKER_IMAGE_TAG,repo_location)
-     result = subprocess.Popen(invoke_command)
+def invoke_build(repo_name):
+     repo_location = get_target_location(repo_name)
+     # This command is condensed with lots of parameters, many man hours were dedicated for it :D
+     os.system("docker run -e LOCAL_USER_ID=`id -u $USER` -v {}:/activities -v {}:/bundles -it {} {}".format(DOWNLOAD_LOCATION,BUNDLE_LOCATION,DOCKER_IMAGE_TAG,repo_name))
 
 def get_bundle_name(parser):
     activity_name = get_activity_attribute(parser,'name')
     activity_version  = get_activity_attribute(parser,'activity_version')
-    return activity_name + "-" + activity_version + ".xo"   
+    return activity_name + "-" + activity_version + ".xo"  
+
+def get_bundle_path(bundle_name):
+    return os.path.join(BUNDLE_LOCATION,bundle_name)
+
+def verify_bundle(bundle_name):
+    bundle_path = get_bundle_path(bundle_name)
+    return os.path.exists(bundle_path) and os.path.isfile(bundle_path)
