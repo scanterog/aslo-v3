@@ -2,7 +2,7 @@ from flask import Flask, request, abort
 from celery import Celery
 import os
 from flask_pymongo import PyMongo
-from pymongo import MongoClient
+from pymongo import MongoClient,DESCENDING
 import utils
 
 app = Flask(__name__)
@@ -60,8 +60,12 @@ def build_pipeline(repo_url, repo_name):
         #sugar = mongo.db.sugar
         parser = utils.read_activity(activity_file)
         #sugar.insert_one(json_object)
-        utils.invoke_build(repo_name)
+        # Check versions before invoking build
         json_object = utils.get_activity_manifest(parser)
+        if is_a_new_release(json_object) is False:
+            return "Failure"
+        utils.invoke_build(repo_name)
+        
         print(json_object)
         utils.clean_repo(repo_name)
         if utils.verify_bundle(json_object['bundle_name']):
@@ -81,7 +85,16 @@ def update_activity_record(json_object):
     else:
         record.update(json_object)
         
-
+def is_a_new_release(json_object):
+    document = client['sugar']['activities']
+    # Pymongo really doesn't respect limits. Why :angry:
+    # http://api.mongodb.com/python/current/api/pymongo/cursor.html#pymongo.cursor.Cursor.count
+    record = document.find({'bundle_id': json_object['bundle_id']}).sort('activity_version',pymongo.DESCENDING)[0]
+    if record is None:
+        return record
+    else:
+        # Return true if record that exists is less than the version we just build
+        return record['activity_version'] < json_object['activity_version']
 
 if __name__ == "__main__":
    app.run(host='0.0.0.0')
