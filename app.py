@@ -1,8 +1,9 @@
-from flask import Flask, request, abort
+from flask import Flask, request, abort, render_template
 from celery import Celery
 import os
 from flask_pymongo import PyMongo
 from pymongo import MongoClient,DESCENDING
+from flask_bootstrap import Bootstrap
 import utils
 
 app = Flask(__name__)
@@ -10,6 +11,10 @@ app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 app.config['MONGO_DBNAME'] = 'sugar'
 app.config['MONGO_URI'] = 'mongodb://localhost:27017/sugar'
+
+
+## Install BootStrap
+Bootstrap(app)
 
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
@@ -25,8 +30,7 @@ GITHUB_HOOK_SECRET = os.environ.get('GITHUB_HOOK_SECRET')
 
 @app.route('/')
 def main():
-    return "Welcome"
-
+    return render_template('index.html')
 
 @app.route('/webhook', methods=['POST'])
 def handle_payload():
