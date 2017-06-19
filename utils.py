@@ -18,6 +18,8 @@ def verify_signature(header_signature, raw_data, secret):
     if sha_name != 'sha1':
         return False
     # HMAC requires the key to be bytes, pass raw request data
+    # Hmac in Python 3 fails if we don't convert secret to bytes
+    secret = str.encode(secret)
     mac = hmac.new(secret, raw_data, sha1)
     # Use compare_digest to avoid timing attacks
     return hmac.compare_digest(str(mac.hexdigest()), str(signature))
@@ -78,7 +80,12 @@ def build_activity(repo_location):
 def invoke_build(repo_name):
      repo_location = get_target_location(repo_name)
      # This command is condensed with lots of parameters, many man hours were dedicated for it :D
-     os.system("docker run -e LOCAL_USER_ID=`id -u $USER` -v {}:/activities -v {}:/bundles -it {} {}".format(DOWNLOAD_LOCATION,BUNDLE_LOCATION,DOCKER_IMAGE_TAG,repo_name))
+     docker_invoke_command = "docker run -e LOCAL_USER_ID=`id -u $USER` -v {}:/activities -v {}:/bundles -it {} {}".format(DOWNLOAD_LOCATION,BUNDLE_LOCATION,DOCKER_IMAGE_TAG,repo_name)
+     print("Invoking Docker with ...")
+     print(docker_invoke_command)
+     res = os.system(docker_invoke_command)
+     print(res)
+     return res
 
 def get_bundle_name(parser):
     activity_name = get_activity_attribute(parser,'name')

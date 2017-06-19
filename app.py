@@ -5,7 +5,6 @@ from flask_pymongo import PyMongo
 from pymongo import MongoClient,DESCENDING
 from flask_bootstrap import Bootstrap
 import utils
-
 app = Flask(__name__)
 app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
@@ -41,9 +40,17 @@ def handle_payload():
     if not utils.verify_signature(header_signature, request.data, GITHUB_HOOK_SECRET):
         abort(403)
 
-    repo_url = content['repository']['clone_url']
-    repo_name = content['repository']['name']
-    task = build_pipeline.apply_async(args=[repo_url, repo_name])
+    ## Great if we reach here, it means Webhook was indeed signed by Github and is legit
+    # Now we differentiate if it's a hook test or release hook
+    
+    # We only care about release events for now
+    if 'action' and 'repository' and 'release' in content:
+         repo_url = content['repository']['clone_url']
+         repo_name = content['repository']['name']
+         task = build_pipeline.apply_async(args=[repo_url, repo_name])
+        
+    
+   
     return "Authenticated request :D"
 
 
@@ -63,13 +70,18 @@ def build_pipeline(repo_url, repo_name):
     if activity_file is not None:
         #sugar = mongo.db.sugar
         parser = utils.read_activity(activity_file)
+        print("Manifest Parsed .. OK")
         #sugar.insert_one(json_object)
         # Check versions before invoking build
         json_object = utils.get_activity_manifest(parser)
+        print("JSON Parsed .. OK")
+        print(json_object)
         if is_a_new_release(json_object) is False:
+            # TODO - Inform Author about Failure
             return "Failure"
+        print("Version check .. OK")
         utils.invoke_build(repo_name)
-        
+        print("Build DONE .. OK")
         print(json_object)
         utils.clean_repo(repo_name)
         if utils.verify_bundle(json_object['bundle_name']):
@@ -83,22 +95,23 @@ def build_pipeline(repo_url, repo_name):
 
 def update_activity_record(json_object):
     document = client['sugar']['activities']
-    record = document.find_one({'bundle_id': json_object['bundle_id']})
-    if record is None:
-        document.insert_one(json_object)
-    else:
-        record.update(json_object)
+    # If a new version exists we inject it as a new document instead of updating old one
+    # Since we need to keep record of previous releases
+    document.insert_one(json_object)
         
 def is_a_new_release(json_object):
     document = client['sugar']['activities']
     # Pymongo really doesn't respect limits. Why :angry:
     # http://api.mongodb.com/python/current/api/pymongo/cursor.html#pymongo.cursor.Cursor.count
-    record = document.find({'bundle_id': json_object['bundle_id']}).sort('activity_version',pymongo.DESCENDING)[0]
-    if record is None:
-        return record
+    record = document.find({'bundle_id': json_object['bundle_id']}).sort('activity_version',DESCENDING)
+    if record.count() == 0:
+        return None
     else:
         # Return true if record that exists is less than the version we just build
-        return record['activity_version'] < json_object['activity_version']
+        # Only compare first result , i.e. most latest one
+        # Although version are int only, using float for safety
+        print(float(record[0]['activity_version']) < float(json_object['activity_version']))
+        return float(record[0]['activity_version']) < float(json_object['activity_version'])
 
 if __name__ == "__main__":
    app.run(host='0.0.0.0')
