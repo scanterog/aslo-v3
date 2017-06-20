@@ -50,17 +50,20 @@ def clone_repo(clone_url):
 
 # Check if asset is named .xo
 def asset_name_check(asset_name):
+    print("Checking for presence of .xo in name of "+asset_name)
     return ".xo" in asset_name
 
 def download_asset(download_url,name):
     response = requests.get(download_url, stream=True)
     # Save with every block of 1024 bytes
+    print("Downloading File .. " + name)
     with open(TEMPORARY_BUNDLES + "/" + name,"wb") as handle:
         for block in response.iter_content(chunk_size=1024):
             handle.write(block)    
     return
 
 def check_info_file(name):
+    print("Checking For Activity.info")
     xo_file = zipfile.ZipFile(TEMPORARY_BUNDLES+"/"+name)
     return any("activity.info" in filename for filename in xo_file.namelist())
 
@@ -72,6 +75,7 @@ def asset_manifest_check(download_url,bundle_name):
       # Return false if that particular bundle already exists
        if verify_bundle(bundle_name):
            os.remove(TEMPORARY_BUNDLES+"/"+bundle_name)
+           print("File Already Exists")
            return False
        else:
            shutil.move(TEMPORARY_BUNDLES+"/"+bundle_name,BUNDLE_LOCATION)

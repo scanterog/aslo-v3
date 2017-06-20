@@ -54,10 +54,10 @@ def build_pipeline(content):
     repo_url = content['repository']['clone_url']
     repo_name = content['repository']['name']
     release = content['release']
-    utils.clone_repo(repo_url)
     # If we have assets in release that means it could contain pre built bundle
     # But we check that assets should not be empty
     if 'assets' in release and len(release['assets']) != 0:
+        print("We have Release with Assets")
         print(release['assets'])
         # While we check assets for presence of bundle, we stop as soon we find first bundle
         bundle_name = utils.check_and_download_assets(release['assets'])
@@ -65,7 +65,7 @@ def build_pipeline(content):
            activity_file = utils.check_bundle(bundle_name)
            if activity_file:
                activity_file = activity_file.decode()
-               parser = utils.read_activity(activity_file)
+               parser = utils.read_activity(activity_file,is_string=True)
                print("Manifest Parsed .. OK")
                # Check versions before invoking build
                json_object = utils.get_activity_manifest(parser)
@@ -85,6 +85,7 @@ def build_pipeline(content):
     ### Zero asset release build from Source 
     ##############################################################
     else:
+        print("We have a zero asset Release. Building from Source")
         utils.clone_repo(repo_url)
         activity_file = utils.check_activity(repo_name)
         if activity_file is not None:
