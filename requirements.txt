@@ -3,3 +3,4 @@ flask-bootstrap
 celery
 pymongo
 redis
+requests
