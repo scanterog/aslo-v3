@@ -5,11 +5,13 @@ import json
 import subprocess
 from hashlib import sha1
 import shutil
-
+import requests
+import zipfile
 ## Useful constants
 DOWNLOAD_LOCATION = "/tmp/activities/"
 DOCKER_IMAGE_TAG = "build_bot"
 BUNDLE_LOCATION = "/opt/bundles/"
+TEMPORARY_BUNDLES = '/tmp/bundles'
 
 # Thanks to https://github.com/carlos-jenkins/python-github-webhooks/blob/master/webhooks.py
 # https://developer.github.com/webhooks/securing/
@@ -25,6 +27,14 @@ def verify_signature(header_signature, raw_data, secret):
     return hmac.compare_digest(str(mac.hexdigest()), str(signature))
 
 
+def check_bundle(bundle_name):
+   xo_file = zipfile.ZipFile(get_bundle_path(bundle_name))
+   # Find the acitivity_file and return it
+   for filename in xo_file.namelist():
+       if 'activity.info' in filename:
+           return xo_file.read(filename)
+   return None
+
 def get_target_location(repo_name):
     return os.path.join(DOWNLOAD_LOCATION,repo_name)
 
@@ -38,6 +48,51 @@ def clone_repo(clone_url):
 
 # TODO : Refactor lose functions to a wrapper class
 
+# Check if asset is named .xo
+def asset_name_check(asset_name):
+    print("Checking for presence of .xo in name of "+asset_name)
+    return ".xo" in asset_name
+
+def download_asset(download_url,name):
+    response = requests.get(download_url, stream=True)
+    # Save with every block of 1024 bytes
+    print("Downloading File .. " + name)
+    with open(TEMPORARY_BUNDLES + "/" + name,"wb") as handle:
+        for block in response.iter_content(chunk_size=1024):
+            handle.write(block)    
+    return
+
+def check_info_file(name):
+    print("Checking For Activity.info")
+    xo_file = zipfile.ZipFile(TEMPORARY_BUNDLES+"/"+name)
+    return any("activity.info" in filename for filename in xo_file.namelist())
+
+
+def asset_manifest_check(download_url,bundle_name):
+    download_asset(download_url,bundle_name)
+    if check_info_file(bundle_name):
+      # Check if that bundle already exists then we don't continue
+      # Return false if that particular bundle already exists
+       if verify_bundle(bundle_name):
+           os.remove(TEMPORARY_BUNDLES+"/"+bundle_name)
+           print("File Already Exists")
+           return False
+       else:
+           shutil.move(TEMPORARY_BUNDLES+"/"+bundle_name,BUNDLE_LOCATION)
+           return bundle_name
+    return False  
+   
+def check_asset(asset):
+    if asset_name_check(asset['name']): 
+       return asset_manifest_check(asset['browser_download_url'],asset['name'])
+    return False
+
+def check_and_download_assets(assets):
+    for asset in assets:
+        bundle_name = check_asset(asset)
+        if bundle_name:
+            return bundle_name
+        return False
 
 def check_activity(repo_name):
     target_folder = get_target_location(repo_name)
@@ -48,9 +103,12 @@ def check_activity(repo_name):
         return None
 
 
-def read_activity(activity_file):
+def read_activity(activity_file,is_string=False):
     parser = configparser.ConfigParser()
-    parser.read(activity_file)
+    if is_string:
+        parser.read_string(activity_file)
+    else:
+        parser.read(activity_file)
     return parser
 
 

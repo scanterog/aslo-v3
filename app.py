@@ -2,7 +2,7 @@ from flask import Flask, request, abort, render_template
 from celery import Celery
 import os
 from flask_pymongo import PyMongo
-from pymongo import MongoClient,DESCENDING
+from pymongo import MongoClient,ASCENDING
 from flask_bootstrap import Bootstrap
 import utils
 app = Flask(__name__)
@@ -45,52 +45,70 @@ def handle_payload():
     
     # We only care about release events for now
     if 'action' and 'repository' and 'release' in content:
-         repo_url = content['repository']['clone_url']
-         repo_name = content['repository']['name']
-         task = build_pipeline.apply_async(args=[repo_url, repo_name])
-        
-    
-   
+         task = build_pipeline.apply_async(args=[content])
     return "Authenticated request :D"
 
 
-@app.route('/test_celery')
-def test_celery():
-    repo_url = request.args.get('repo_url')
-    repo_name = request.args.get('repo_name')
-    print("Repo name is " + repo_url)
-    task = build_pipeline.apply_async(args=[repo_url, repo_name])
-    return "Done"
-
-
 @celery.task
-def build_pipeline(repo_url, repo_name):
-    utils.clone_repo(repo_url)
-    activity_file = utils.check_activity(repo_name)
-    if activity_file is not None:
-        #sugar = mongo.db.sugar
-        parser = utils.read_activity(activity_file)
-        print("Manifest Parsed .. OK")
-        #sugar.insert_one(json_object)
-        # Check versions before invoking build
-        json_object = utils.get_activity_manifest(parser)
-        print("JSON Parsed .. OK")
-        print(json_object)
-        if is_a_new_release(json_object) is False:
-            # TODO - Inform Author about Failure
+def build_pipeline(content):
+    repo_url = content['repository']['clone_url']
+    repo_name = content['repository']['name']
+    release = content['release']
+    # If we have assets in release that means it could contain pre built bundle
+    # But we check that assets should not be empty
+    if 'assets' in release and len(release['assets']) != 0:
+        print("We have Release with Assets")
+        print(release['assets'])
+        # While we check assets for presence of bundle, we stop as soon we find first bundle
+        bundle_name = utils.check_and_download_assets(release['assets'])
+        if bundle_name:
+           activity_file = utils.check_bundle(bundle_name)
+           if activity_file:
+               activity_file = activity_file.decode()
+               parser = utils.read_activity(activity_file,is_string=True)
+               print("Manifest Parsed .. OK")
+               # Check versions before invoking build
+               json_object = utils.get_activity_manifest(parser)
+               print("JSON Parsed .. OK")
+               print(json_object)
+               if is_a_new_release(json_object) is False:
+                     # TODO - Inform Author about Failure
+                    return "Failure"
+               print("Version check .. OK")
+               update_activity_record(json_object)
+
+           else:
+               return "Failure"
+        else:
             return "Failure"
-        print("Version check .. OK")
-        utils.invoke_build(repo_name)
-        print("Build DONE .. OK")
-        print(json_object)
-        utils.clean_repo(repo_name)
-        if utils.verify_bundle(json_object['bundle_name']):
-           #json_object['xo_build'] = "success"
-           update_activity_record(json_object)
-           return "Success"
-        return "Failure"
-    utils.clean_repo(repo_name)
-    return "Failure"
+
+    ### Zero asset release build from Source 
+    ##############################################################
+    else:
+        print("We have a zero asset Release. Building from Source")
+        utils.clone_repo(repo_url)
+        activity_file = utils.check_activity(repo_name)
+        if activity_file is not None:
+           parser = utils.read_activity(activity_file)
+           print("Manifest Parsed .. OK")
+           # Check versions before invoking build
+           json_object = utils.get_activity_manifest(parser)
+           print("JSON Parsed .. OK")
+           print(json_object)
+           if is_a_new_release(json_object) is False:
+               # TODO - Inform Author about Failure
+               print("Version check Failed. Activity with Same activity already exists")
+               return "Failure"
+           print("Version check .. OK")
+           utils.invoke_build(repo_name)
+           print("Build DONE .. OK")
+           print(json_object)
+           utils.clean_repo(repo_name)
+           if utils.verify_bundle(json_object['bundle_name']):
+              #json_object['xo_build'] = "success"
+              update_activity_record(json_object)
+              return "Success"
+           return "Failure"
 
 
 def update_activity_record(json_object):
@@ -103,7 +121,7 @@ def is_a_new_release(json_object):
     document = client['sugar']['activities']
     # Pymongo really doesn't respect limits. Why :angry:
     # http://api.mongodb.com/python/current/api/pymongo/cursor.html#pymongo.cursor.Cursor.count
-    record = document.find({'bundle_id': json_object['bundle_id']}).sort('activity_version',DESCENDING)
+    record = document.find({'bundle_id': json_object['bundle_id']}).sort('activity_version',ASCENDING)
     if record.count() == 0:
         return None
     else:
